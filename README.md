@@ -47,9 +47,49 @@ Eigene `config/config.json` lokal aus `config/config.example.json` ableiten, nic
 
 ## Einheit 2: Datenmodell anlegen
 
-- [ ] Ausgefüllte Planungsvorlage: `docs/diagramm/planungsvorlage.html`
-- [ ] Verwendete `model:generate`-Befehle dokumentiert
-- [ ] Screenshot der angelegten Tabellen im DB-Tool: `docs/screenshots/`
+- [x] Ausgefüllte Planungsvorlage: `docs/diagramm/planungsvorlage.html`
+- [x] Verwendete `model:generate`-Befehle dokumentiert (unten)
+- [ ] Screenshot der angelegten Tabellen im DB-Tool: `docs/screenshots/einheit2/`
+
+### Projekt aufsetzen
+
+```bash
+cd backend
+npm init -y
+npm install express cors morgan sequelize cookie-parser mysql2
+npm install --save-dev sequelize-cli
+npx sequelize-cli init
+```
+
+Danach `config/config.json` aus `config/config.example.json` ableiten (nicht committen) und
+`index.js` als Einstiegspunkt anlegen, Startbefehl in `package.json`: `"start": "node index.js"`.
+
+### model:generate
+
+Abgeleitet aus der ausgefüllten Planungsvorlage (Spaltenname = Sequelize-Attribut):
+
+```bash
+npx sequelize-cli model:generate --name Team --attributes name:string,klasse:string
+npx sequelize-cli model:generate --name Member --attributes teamId:integer,vorname:string,nachname:string
+npx sequelize-cli model:generate --name Project --attributes teamId:integer,titel:string,beschreibung:text,praesentiertAm:date
+```
+
+### Migrieren
+
+```bash
+npx sequelize-cli db:create
+npx sequelize-cli db:migrate
+```
+
+Ergebnis: Tabellen `teams`, `members`, `projects` (Pluralbildung automatisch) plus
+`SequelizeMeta` für die Migrationhistorie. Die Fremdschlüssel-Assoziation im Code folgt in
+Einheit 3, `model:generate` legt nur die Spalte an.
+
+| Entität | Attribute (ohne id, createdAt, updatedAt) |
+|---|---|
+| Team | `name` STRING NOT NULL, `klasse` STRING NOT NULL |
+| Member | `teamId` INTEGER (FK → Team.id), `vorname` STRING NOT NULL, `nachname` STRING NOT NULL |
+| Project | `teamId` INTEGER (FK → Team.id), `titel` STRING NOT NULL, `beschreibung` TEXT, `praesentiertAm` DATE |
 
 ## Einheit 3: Assoziationen und weitere Modelle
 
@@ -92,8 +132,9 @@ Eigene `config/config.json` lokal aus `config/config.example.json` ableiten, nic
 
 ## Bekannte Einschränkungen
 
-- `backend/` und `frontend/` sind noch leer, sie werden erst ab Einheit 2 (Backend) bzw.
-  Einheit 6 (Frontend) aufgesetzt. In Einheit 1 existiert nur die Ordnerstruktur.
+- `frontend/` ist noch leer, es wird erst ab Einheit 6 aufgesetzt.
+- `backend/` enthält bisher nur die Einrichtung und die drei Modelle aus Einheit 2, die
+  Routen folgen in Einheit 4.
 - Die Datenbank läuft über XAMPP als MariaDB 10.4.32, nicht über MySQL Community Server.
   Der Sequelize-Dialect `mysql` funktioniert damit, MariaDB ist MySQL-kompatibel.
 - Postman ist noch nicht installiert (wird für Einheit 5 gebraucht).
