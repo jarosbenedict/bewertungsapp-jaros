@@ -10,14 +10,26 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      Project.belongsTo(models.Team, { foreignKey: 'teamId' });
+      Project.hasMany(models.Evaluation, { foreignKey: 'projectId' });
     }
   }
   Project.init({
-    teamId: DataTypes.INTEGER,
-    titel: DataTypes.STRING,
-    beschreibung: DataTypes.TEXT,
-    praesentiertAm: DataTypes.DATE
+    teamId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    titel: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    beschreibung: {
+      type: DataTypes.TEXT
+    },
+    // DATE statt DATETIME: ein Präsentationstag hat keine Uhrzeit.
+    praesentiertAm: {
+      type: DataTypes.DATEONLY
+    }
   }, {
     sequelize,
     modelName: 'Project',

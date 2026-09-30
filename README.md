@@ -93,9 +93,93 @@ Einheit 3, `model:generate` legt nur die Spalte an.
 
 ## Einheit 3: Assoziationen und weitere Modelle
 
-- [ ] Alle Modelle (Team, Member, Project, Criterion, Juror, Evaluation) mit ausgefüllten `associate`-Methoden
-- [ ] Unique-Constraint auf (projectId, criterionId, jurorId) bei Evaluation
-- [ ] Mindestens ein Seeder mit Testdaten
+- [x] Alle Modelle (Team, Member, Project, Criterion, Juror, Evaluation) mit ausgefüllten `associate`-Methoden
+- [x] Unique-Constraint auf (projectId, criterionId, jurorId) bei Evaluation
+- [x] Vier Seeder mit Testdaten
+- [ ] Screenshot `db:migrate` ohne Fehler und der Tabellen in `docs/screenshots/einheit3/`
+
+### Weitere Modelle generieren
+
+```bash
+npx sequelize-cli model:generate --name Criterion --attributes name:string,maxScore:integer,weight:float
+npx sequelize-cli model:generate --name Juror --attributes name:string,email:string
+npx sequelize-cli model:generate --name Evaluation --attributes projectId:integer,criterionId:integer,jurorId:integer,score:integer,comment:text
+```
+
+### Assoziationen
+
+`model:generate` legt nur die Fremdschlüssel-Spalte an, die Beziehung selbst wird in den
+Model-Dateien im Abschnitt `associate` ergänzt. `models/index.js` ruft die Methode
+automatisch auf.
+
+| Modell | `associate` |
+|---|---|
+| Team | `hasMany(Member, { foreignKey: 'teamId' })`, `hasMany(Project, { foreignKey: 'teamId' })` |
+| Member | `belongsTo(Team, { foreignKey: 'teamId' })` |
+| Project | `belongsTo(Team, { foreignKey: 'teamId' })`, `hasMany(Evaluation, { foreignKey: 'projectId' })` |
+| Criterion | `hasMany(Evaluation, { foreignKey: 'criterionId' })` |
+| Juror | `hasMany(Evaluation, { foreignKey: 'jurorId' })` |
+| Evaluation | `belongsTo(Project, { foreignKey: 'projectId' })`, `belongsTo(Criterion, { foreignKey: 'criterionId' })`, `belongsTo(Juror, { foreignKey: 'jurorId' })` |
+
+### Constraints
+
+Die Migrationen setzen die Constraints aus der Planungsvorlage um:
+
+- `Criteria.name` und `Jurors.email`: `UNIQUE`
+- `Evaluations`: `UNIQUE (projectId, criterionId, jurorId)` namens
+  `evaluations_project_criterion_juror_unique`, verhindert doppelte Bewertung desselben
+  Kriteriums durch denselben Juror für dasselbe Projekt
+- `Evaluations.score`: `CHECK (score >= 0)` namens `evaluations_score_non_negative`,
+  zusätzlich zum Model-Validator `min: 0`, damit die Regel auch bei direktem SQL-Zugriff gilt
+- Fremdschlüssel mit `ON DELETE CASCADE` und `ON UPDATE CASCADE` auf `Members.teamId`,
+  `Projects.teamId`, `Evaluations.projectId`, `Evaluations.criterionId`, `Evaluations.jurorId`
+- `Projects.praesentiertAm` ist `DATE` (nicht `DATETIME`), weil ein Präsentationstag keine
+  Uhrzeit hat
+
+Nicht als DB-Constraint möglich: die Obergrenze von `score` ist `Criterion.maxScore`, hängt
+aber von einer anderen Tabelle ab. Diese Prüfung gehört in die POST-Route der Einheit 4.
+
+`20260930054500-add-constraints-to-existing-tables.js` ergänzt diese Constraints nachträglich
+für die in Einheit 2 angelegten Tabellen. Das ist bewusst eine eigene Migration statt einer
+Änderung an den Einheit-2-Migrationen, damit der mit `lab2` getaggte Stand reproduzierbar
+bleibt.
+
+Die Fremdschlüssel werden in dieser Migration über `addConstraint` mit eigenem Namen angelegt
+(`members_teamId_fkey`, `projects_teamId_fkey`). Grund: `changeColumn` mit `references` erzeugt
+einen FK mit automatischem MySQL-Namen (`members_ibfk_1`), der im `down()` nicht mehr gezielt
+entfernbar ist und das Zurückrollen der Migration verhindert.
+
+### Seeder
+
+```bash
+npx sequelize-cli seed:generate --name standard-kriterien   # und demo-juroren, demo-teams, demo-bewertungen
+npx sequelize-cli db:seed:all
+```
+
+| Seeder | Inhalt |
+|---|---|
+| `standard-kriterien` | 3 Kriterien: Inhalt, Präsentationstechnik, Technische Umsetzung (Gewicht 1.5) |
+| `demo-juroren` | 2 Juroren mit E-Mail als späterer Login-Kennung |
+| `demo-teams` | 2 Teams, 3 Mitglieder, 2 Projekte |
+| `demo-bewertungen` | 10 Bewertungen, damit die Auswertung ab Einheit 4 etwas zu rechnen hat |
+
+Zurücksetzen mit `npx sequelize-cli db:seed:undo:all` (jeder Seeder hat ein `down`).
+
+Die Seeder vergeben feste IDs (1, 2, ...), damit die Fremdschlüssel der Bewertungen
+reproduzierbar auf die richtigen Teams, Projekte und Juroren zeigen. Das `down` von
+`demo-teams` räumt die Tabellen vollständig leer, also nur auf einer reinen Testdatenbank
+ausführen.
+
+### Datenmodell gesamt
+
+| Entität | Attribute (ohne id, createdAt, updatedAt) |
+|---|---|
+| Team | `name` STRING NOT NULL, `klasse` STRING NOT NULL |
+| Member | `teamId` FK NOT NULL, `vorname` STRING NOT NULL, `nachname` STRING NOT NULL |
+| Project | `teamId` FK NOT NULL, `titel` STRING NOT NULL, `beschreibung` TEXT, `praesentiertAm` DATE |
+| Criterion | `name` STRING NOT NULL UNIQUE, `maxScore` INTEGER NOT NULL, `weight` FLOAT NOT NULL Default 1.0 |
+| Juror | `name` STRING NOT NULL, `email` STRING NOT NULL UNIQUE |
+| Evaluation | `projectId` FK NOT NULL, `criterionId` FK NOT NULL, `jurorId` FK NOT NULL, `score` INTEGER NOT NULL, `comment` TEXT |
 
 ## Einheit 4: Backend-Routen
 
@@ -133,8 +217,16 @@ Einheit 3, `model:generate` legt nur die Spalte an.
 ## Bekannte Einschränkungen
 
 - `frontend/` ist noch leer, es wird erst ab Einheit 6 aufgesetzt.
-- `backend/` enthält bisher nur die Einrichtung und die drei Modelle aus Einheit 2, die
-  Routen folgen in Einheit 4.
+- `backend/` enthält bisher die Einrichtung, alle sechs Modelle und die Seeder. Die Routen
+  folgen in Einheit 4, deshalb läuft der Server in `index.js` bisher ohne Endpunkte.
+- `Juror.password` für den Login aus Einheit 7 existiert noch nicht, das Feld kommt mit dem
+  JWT-Teil dazu.
+- **Achtung Express 5:** `npm install express` hat Version 5 installiert, der Kurs geht von
+  Express 4 aus. Der wichtigste Unterschied für Einheit 4: bei einem POST **ohne Body** ist
+  `req.body` in Express 5 `undefined` statt `{}`. `const { name } = req.body;` wirft dann einen
+  `TypeError`. Deshalb in jeder POST-Route `const data = req.body ?? {};` verwenden.
+- Die Punktzahl-Obergrenze (`score <= Criterion.maxScore`) ist noch nicht geprüft, sie gehört
+  in die POST-Route der Einheit 4.
 - Die Datenbank läuft über XAMPP als MariaDB 10.4.32, nicht über MySQL Community Server.
   Der Sequelize-Dialect `mysql` funktioniert damit, MariaDB ist MySQL-kompatibel.
 - Postman ist noch nicht installiert (wird für Einheit 5 gebraucht).

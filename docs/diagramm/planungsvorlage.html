@@ -153,9 +153,9 @@
 <table>
 <tr><th>Spaltenname</th><th>Datentyp</th><th>Constraint</th></tr>
 <tr class="fix"><td>id</td><td>INTEGER</td><td>Primärschlüssel, automatisch</td></tr>
-<tr class="blank"><td></td><td></td><td></td></tr>
-<tr class="blank"><td></td><td></td><td></td></tr>
-<tr class="blank"><td></td><td></td><td></td></tr>
+<tr><td>name</td><td>STRING</td><td>NOT NULL, UNIQUE (Kriterium darf nur einmal vorkommen)</td></tr>
+<tr><td>maxScore</td><td>INTEGER</td><td>NOT NULL (Höchstpunktezahl, im Beispiel 10)</td></tr>
+<tr><td>weight</td><td>FLOAT</td><td>NOT NULL, Default 1.0 (Gewichtung, 1.0 = neutral)</td></tr>
 </table>
 <div class="beispiel">
 <strong>Beispieldaten Criterion</strong>
@@ -173,9 +173,8 @@
 <table>
 <tr><th>Spaltenname</th><th>Datentyp</th><th>Constraint</th></tr>
 <tr class="fix"><td>id</td><td>INTEGER</td><td>Primärschlüssel, automatisch</td></tr>
-<tr class="blank"><td></td><td></td><td></td></tr>
-<tr class="blank"><td></td><td></td><td></td></tr>
-<tr class="blank"><td></td><td></td><td></td></tr>
+<tr><td>name</td><td>STRING</td><td>NOT NULL</td></tr>
+<tr><td>email</td><td>STRING</td><td>NOT NULL, UNIQUE (dient ab Einheit 7 als Login-Kennung)</td></tr>
 </table>
 <div class="beispiel">
 <strong>Beispieldaten Juror</strong>
@@ -195,9 +194,10 @@
 <tr class="fix"><td>projectId</td><td>INTEGER</td><td>Fremdschlüssel → Project.id</td></tr>
 <tr class="fix"><td>criterionId</td><td>INTEGER</td><td>Fremdschlüssel → Criterion.id</td></tr>
 <tr class="fix"><td>jurorId</td><td>INTEGER</td><td>Fremdschlüssel → Juror.id</td></tr>
-<tr class="blank"><td></td><td></td><td></td></tr>
-<tr class="blank"><td></td><td></td><td></td></tr>
+<tr><td>score</td><td>INTEGER</td><td>NOT NULL, CHECK (score &gt;= 0)</td></tr>
+<tr><td>comment</td><td>TEXT</td><td>NULL erlaubt (Begründung ist optional)</td></tr>
 <tr class="fix"><td colspan="3">Zusätzlich: Unique-Constraint auf (projectId, criterionId, jurorId), sonst kann derselbe Juror dasselbe Kriterium für dasselbe Projekt mehrfach bewerten.</td></tr>
+<tr class="fix"><td colspan="3">Hinweis zu score: Die Obergrenze ist Criterion.maxScore. Das lässt sich nicht als DB-Constraint abbilden, weil sie in einer anderen Tabelle steht, und wird deshalb im Backend bei der POST-Route geprüft (Einheit 4).</td></tr>
 </table>
 <div class="beispiel">
 <strong>Beispieldaten Evaluation</strong>
