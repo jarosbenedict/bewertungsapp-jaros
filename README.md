@@ -137,7 +137,8 @@ Die Migrationen setzen die Constraints aus der Planungsvorlage um:
   Uhrzeit hat
 
 Nicht als DB-Constraint möglich: die Obergrenze von `score` ist `Criterion.maxScore`, hängt
-aber von einer anderen Tabelle ab. Diese Prüfung gehört in die POST-Route der Einheit 4.
+aber von einer anderen Tabelle ab. Sie wird deshalb in der POST-Route von `evaluations.js`
+geprüft (Einheit 4).
 
 `20260930054500-add-constraints-to-existing-tables.js` ergänzt diese Constraints nachträglich
 für die in Einheit 2 angelegten Tabellen. Das ist bewusst eine eigene Migration statt einer
@@ -183,10 +184,34 @@ ausführen.
 
 ## Einheit 4: Backend-Routen
 
-- [ ] CRUD für Team und Project
-- [ ] POST-Route für Evaluation inkl. Validierung
-- [ ] Aggregations-Route: Durchschnitt der Punktzahl pro Projekt und Kriterium
-- [ ] Kurze Endpunkt-Dokumentation (Methode, Pfad, Body, Rückgabe) unten in diesem README oder in `docs/`
+- [x] CRUD für Team und Project
+- [x] POST-Route für Evaluation inkl. Validierung
+- [x] Aggregations-Route: Durchschnitt der Punktzahl pro Projekt und Kriterium
+- [x] Kurze Endpunkt-Dokumentation (unten in diesem README)
+
+### Aufbau der Routen
+
+```
+backend/
+├── index.js              Express-App, hängt die Routen ein, 404- und Fehler-Handler
+├── routes/
+│   ├── index.js          sammelt alle Ressourcen unter einer Wurzel
+│   ├── teams.js          CRUD Team + verschachtelt /:id/members und /:id/projects
+│   ├── members.js        CRUD Member
+│   ├── projects.js       CRUD Project + Auswertung
+│   ├── criteria.js       CRUD Criterion
+│   ├── jurors.js         CRUD Juror
+│   └── evaluations.js    POST mit Validierung, Auswertung, CRUD
+├── middleware/
+│   └── errorHandler.js   404 für unbekannte Routen, zentrale Fehlerbehandlung
+└── utils/
+    ├── errors.js         HttpError mit Statuscode
+    └── validation.js     Pflichtfelder, Zahlprüfung, Feldauswahl
+```
+
+Alle Routen liegen direkt auf der Wurzel (`GET /teams`), passend zur Vorlage. Die Routen
+selbst enthalten kein `try/catch`: Express 5 leitet abgelehnte Promises automatisch an den
+errorHandler weiter.
 
 ## Einheit 5: Postman-Test
 
@@ -208,25 +233,170 @@ ausführen.
 - [ ] Juror-Login, Token-Storage mit `@capacitor/preferences`
 - [ ] Nachweis: geschützte Route liefert ohne Token 401, mit gültigem Token die erwartete Antwort
 
-## Endpunkt-Dokumentation (laufend ergänzen)
+## Endpunkt-Dokumentation
+
+Basis-URL: `http://localhost:3000`. Alle Antworten sind JSON. `:id` bedeutet eine ganze Zahl,
+bei einem ungültigen Wert antwortet die API mit 400, nicht mit 500.
+
+### Teams
 
 | Methode | Pfad | Body | Rückgabe |
 |---|---|---|---|
-| GET | /teams | – | Liste aller Teams |
+| GET | `/` | – | Übersicht der Ressourcen |
+| GET | `/teams` | – | alle Teams inkl. Mitglieder und Projekte |
+| GET | `/teams/:id` | – | ein Team inkl. Mitglieder und Projekte |
+| GET | `/teams/:id/members` | – | nur die Mitglieder eines Teams |
+| GET | `/teams/:id/projects` | – | nur die Projekte eines Teams |
+| POST | `/teams` | `{ name, klasse }` | angelegtes Team, 201 |
+| PUT | `/teams/:id` | `{ name?, klasse? }` | aktualisiertes Team |
+| DELETE | `/teams/:id` | – | 204, löscht Mitglieder und Projekte mit (CASCADE) |
+
+### Members
+
+| Methode | Pfad | Body | Rückgabe |
+|---|---|---|---|
+| GET | `/members` | – | alle Mitglieder, optional `?teamId=` |
+| GET | `/members/:id` | – | ein Mitglied inkl. Team |
+| POST | `/members` | `{ teamId, vorname, nachname }` | angelegtes Mitglied, 201 |
+| PUT | `/members/:id` | `{ teamId?, vorname?, nachname? }` | aktualisiertes Mitglied |
+| DELETE | `/members/:id` | – | 204 |
+
+### Projects
+
+| Methode | Pfad | Body | Rückgabe |
+|---|---|---|---|
+| GET | `/projects` | – | alle Projekte inkl. Team, optional `?teamId=` |
+| GET | `/projects/:id` | – | Projekt inkl. Team und Bewertungen (mit Kriterium und Juror) |
+| GET | `/projects/:id/evaluations` | – | Bewertungen eines Projekts |
+| GET | `/projects/:id/auswertung` | – | Durchschnitt pro Kriterium, siehe unten |
+| POST | `/projects` | `{ teamId, titel, beschreibung?, praesentiertAm? }` | angelegtes Projekt, 201 |
+| PUT | `/projects/:id` | `{ teamId?, titel?, beschreibung?, praesentiertAm? }` | aktualisiertes Projekt |
+| DELETE | `/projects/:id` | – | 204, löscht Bewertungen mit (CASCADE) |
+
+`praesentiertAm` erwartet das Format `YYYY-MM-DD`, andere Formate liefern 400.
+
+### Criteria
+
+| Methode | Pfad | Body | Rückgabe |
+|---|---|---|---|
+| GET | `/criteria` | – | alle Kriterien, optional `?withEvaluations=true` |
+| GET | `/criteria/:id` | – | ein Kriterium |
+| POST | `/criteria` | `{ name, maxScore, weight? }` | angelegtes Kriterium, 201 |
+| PUT | `/criteria/:id` | `{ name?, maxScore?, weight? }` | aktualisiertes Kriterium |
+| DELETE | `/criteria/:id` | – | 204, löscht die Bewertungen dieses Kriteriums mit |
+
+`name` ist eindeutig (409 bei Duplikat), `maxScore` und `weight` müssen größer als 0 sein.
+
+### Jurors
+
+| Methode | Pfad | Body | Rückgabe |
+|---|---|---|---|
+| GET | `/jurors` | – | alle Juroren |
+| GET | `/jurors/:id` | – | ein Juror |
+| POST | `/jurors` | `{ name, email }` | angelegter Juror, 201 |
+| PUT | `/jurors/:id` | `{ name?, email? }` | aktualisierter Juror |
+| DELETE | `/jurors/:id` | – | 204, oder 409 wenn noch Bewertungen hängen |
+
+`email` ist eindeutig und wird auf Kleinschreibung normalisiert, ein ungültiges Format liefert
+400. `DELETE` wird mit 409 abgelehnt, solange Bewertungen des Jurors existieren, damit die
+Bewertungen nicht unbemerkt verschwinden.
+
+### Evaluations
+
+| Methode | Pfad | Body | Rückgabe |
+|---|---|---|---|
+| GET | `/evaluations` | – | alle Bewertungen, filterbar mit `?projectId=`, `?criterionId=`, `?jurorId=` |
+| GET | `/evaluations/auswertung` | – | Durchschnitt gruppiert nach Projekt und Kriterium |
+| GET | `/evaluations/:id` | – | eine Bewertung inkl. Projekt, Kriterium, Juror |
+| POST | `/evaluations` | `{ projectId, criterionId, jurorId, score, comment? }` | angelegte Bewertung, 201 |
+| PUT | `/evaluations/:id` | `{ score?, comment? }` | aktualisierte Bewertung |
+| DELETE | `/evaluations/:id` | – | 204 |
+
+Validierung der POST-Route, in dieser Reihenfolge:
+
+1. Pflichtfelder `projectId`, `criterionId`, `jurorId`, `score` vorhanden → sonst 400 mit `missingFields`
+2. alle drei IDs sind ganze Zahlen → sonst 400
+3. alle drei referenzierten Datensätze existieren → sonst 400 mit `unbekannteReferenzen`
+4. `score` ist eine ganze Zahl, nicht negativ und höchstens `Criterion.maxScore` → sonst 400
+5. diese Kombination wurde noch nicht bewertet → sonst 409 mit `vorhandeneEvaluationId`
+
+`projectId`, `criterionId` und `jurorId` können nachträglich nicht geändert werden, sie
+identifizieren die Bewertung. Ein Versuch liefert 400, stattdessen die Bewertung löschen und
+neu anlegen.
+
+### Auswertung
+
+`GET /projects/:id/auswertung` liefert den Durchschnitt der Punktzahl pro Kriterium mit
+`AVG`, `COUNT`, `MIN` und `MAX` über `group: ['Criterion.id']`:
+
+```json
+{
+  "project": { "id": 1, "titel": "Dezentrale Wahl-App", "teamId": 1, "team": "Team Blockchain", "praesentiertAm": "2026-06-12" },
+  "kriterien": [
+    {
+      "criterionId": 1, "kriterium": "Inhalt", "maxScore": 10, "weight": 1,
+      "anzahlBewertungen": 2, "durchschnitt": 8.5, "minimum": 8, "maximum": 9,
+      "durchschnittProzent": 85
+    }
+  ],
+  "gesamt": {
+    "durchschnitt": 8.64, "summeGewicht": 3.5,
+    "anzahlKriterien": 3, "anzahlBewerteterKriterien": 3, "summeBewertungen": 6
+  }
+}
+```
+
+Details zur Auswertung:
+
+- Startpunkt ist `Criterion`, nicht `Evaluation`. Durch den `required: false`-Include entsteht
+  ein LEFT JOIN, deshalb bleiben Kriterien ohne Bewertung mit `durchschnitt: null` und
+  `anzahlBewertungen: 0` in der Antwort stehen und verschwinden nicht.
+- `gesamt.durchschnitt` ist gewichtet: `SUM(Ø × weight) / SUM(weight)`, nicht der Mittelwert
+  der Mittelwerte. Ohne Bewertungen ist der Wert `null`, nicht 0, damit er nicht als
+  "schlecht bewertet" missverstanden wird.
+- `durchschnittProzent` ist der Anteil am erreichbaren Maximum, praktisch für Balken im
+  Frontend (Einheit 6/7).
+- `GET /evaluations/auswertung` liefert dieselbe Rechnung über alle Projekte auf einmal,
+  gruppiert nach `projectId` und `criterionId`, optional mit `?projectId=` eingeschränkt.
+
+### Statuscodes
+
+| Code | Bedeutung |
+|---|---|
+| 200 | Anfrage erfolgreich |
+| 201 | Datensatz angelegt |
+| 204 | Datensatz gelöscht, kein Body |
+| 400 | Pflichtfeld fehlt, Wert ungültig, oder referenzierte ID im Body existiert nicht |
+| 404 | Pfad existiert nicht, oder die `:id` in der URL gibt es nicht |
+| 409 | Konflikt: Datensatz existiert bereits (Unique-Constraint) oder abhängige Datensätze verhindern das Löschen |
+| 500 | Unerwarteter Serverfehler |
+
+Die Abgrenzung 400 gegen 404: Geht es um die `:id` in der URL, ist es 404. Geht es um eine ID
+im Body, die auf einen anderen Datensatz verweist, ist es 400, weil die angefragte URL selbst
+existiert.
+
+Alle Fehlerantworten haben die Form `{ "error": "...", "details": { ... } }`, `details` nur
+wenn es Zusatzinformationen gibt.
 
 ## Bekannte Einschränkungen
 
 - `frontend/` ist noch leer, es wird erst ab Einheit 6 aufgesetzt.
-- `backend/` enthält bisher die Einrichtung, alle sechs Modelle und die Seeder. Die Routen
-  folgen in Einheit 4, deshalb läuft der Server in `index.js` bisher ohne Endpunkte.
+- Die API hat noch keine Authentifizierung, alle Routen sind offen. Der Schutz kommt in
+  Einheit 7.
 - `Juror.password` für den Login aus Einheit 7 existiert noch nicht, das Feld kommt mit dem
   JWT-Teil dazu.
 - **Achtung Express 5:** `npm install express` hat Version 5 installiert, der Kurs geht von
-  Express 4 aus. Der wichtigste Unterschied für Einheit 4: bei einem POST **ohne Body** ist
-  `req.body` in Express 5 `undefined` statt `{}`. `const { name } = req.body;` wirft dann einen
-  `TypeError`. Deshalb in jeder POST-Route `const data = req.body ?? {};` verwenden.
-- Die Punktzahl-Obergrenze (`score <= Criterion.maxScore`) ist noch nicht geprüft, sie gehört
-  in die POST-Route der Einheit 4.
+  Express 4 aus. Der wichtigste Unterschied: bei einem POST **ohne Body** ist `req.body` in
+  Express 5 `undefined` statt `{}`. `const { name } = req.body;` wirft dann einen `TypeError`.
+  Deshalb läuft jeder Zugriff über `body(req)` aus `utils/validation.js`.
+- `DELETE /teams/:id` löscht Mitglieder, Projekte und deren Bewertungen mit, weil die
+  Fremdschlüssel auf `ON DELETE CASCADE` stehen. Das ist die Standard-CRUD-Antwort; wer das
+  verhindern will, müsste die Projekte vorher einzeln löschen.
+- Beim Löschen von Kriterien und Projekten verschwinden die zugehörigen Bewertungen
+  ebenfalls per CASCADE.
+- Die API ist noch nicht paginiert, `GET`-Routen liefern immer alle Datensätze. Bei den
+  aktuellen Datenmengen unproblematisch, bei vielen Bewertungen müsste man `limit` und
+  `offset` ergänzen.
 - Die Datenbank läuft über XAMPP als MariaDB 10.4.32, nicht über MySQL Community Server.
   Der Sequelize-Dialect `mysql` funktioniert damit, MariaDB ist MySQL-kompatibel.
 - Postman ist noch nicht installiert (wird für Einheit 5 gebraucht).
