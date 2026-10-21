@@ -1,0 +1,70 @@
+// Ionic Theme – Bewertungsapp
+// Ruhige, gut lesbare Palette: dunkles Blau als Markenfarbe, warmes Amber
+// als Akzent für Punktzahlen. Bewusst ohne externe Fonts, damit die App
+// auch offline vollständig aussieht.
+
+:root {
+  /* ---------- Markenfarben ---------- */
+  --ion-color-primary: #25557c;
+  --ion-color-primary-rgb: 37, 85, 124;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #204a6d;
+  --ion-color-primary-tint: #3b6689;
+
+  --ion-color-secondary: #e0a03c;
+  --ion-color-secondary-rgb: 224, 160, 60;
+  --ion-color-secondary-contrast: #1a1200;
+  --ion-color-secondary-contrast-rgb: 26, 18, 0;
+  --ion-color-secondary-shade: #c58d35;
+  --ion-color-secondary-tint: #e3aa50;
+
+  --ion-color-success: #2f8f6b;
+  --ion-color-success-rgb: 47, 143, 107;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #297e5e;
+  --ion-color-success-tint: #449a7a;
+
+  --ion-color-danger: #b4413c;
+  --ion-color-danger-rgb: 180, 65, 60;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #9e3935;
+  --ion-color-danger-tint: #bc5450;
+
+  /* ---------- Neutrale Flächen ---------- */
+  --ion-background-color: #f4f6f9;
+  --ion-background-color-rgb: 244, 246, 249;
+  --ion-text-color: #16212f;
+  --ion-text-color-rgb: 22, 33, 47;
+
+  --ion-color-step-50: #eef1f5;
+  --ion-color-step-100: #e7ecf1;
+  --ion-color-step-150: #e0e6ec;
+  --ion-color-step-200: #d9e0e7;
+  --ion-color-step-250: #d2dae2;
+  --ion-color-step-300: #cbd4dd;
+  --ion-color-step-400: #b6c2ce;
+  --ion-color-step-500: #9aa9b8;
+  --ion-color-step-600: #7e8fa1;
+  --ion-color-step-700: #63758a;
+  --ion-color-step-800: #4a5d72;
+  --ion-color-step-900: #33465b;
+
+  /* ---------- Eigene Design-Tokens ---------- */
+  --app-ink: #16212f;
+  --app-muted: #65758a;
+  --app-surface: #ffffff;
+  --app-border: #e2e8f0;
+  --app-radius: 18px;
+  --app-radius-klein: 12px;
+  --app-shadow: 0 1px 2px rgba(16, 33, 51, 0.06), 0 8px 24px -12px rgba(16, 33, 51, 0.16);
+  --app-shadow-hoch: 0 2px 4px rgba(16, 33, 51, 0.08), 0 16px 36px -14px rgba(16, 33, 51, 0.24);
+
+  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+
+  --ion-toolbar-background: #16212f;
+  --ion-toolbar-color: #ffffff;
+}

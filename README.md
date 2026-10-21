@@ -23,10 +23,12 @@ Frontend:
 ```bash
 cd frontend
 npm install
-ionic serve
+npm start      # oder ionic serve, Port 8100
 ```
 
 Eigene `config/config.json` lokal aus `config/config.example.json` ableiten, nicht committen.
+Das Frontend erwartet das Backend auf `http://localhost:3000`, einstellbar in
+`frontend/src/environments/environment.ts`.
 
 ## Einheit 1: Installation
 
@@ -256,9 +258,102 @@ enthält nur die Konfiguration (`baseUrl`), die man pro Umgebung ändert.
 
 ## Einheit 6: IONIC-Frontend
 
-- [ ] Projektliste mit Team-Zuordnung
-- [ ] Detailansicht eines Projekts mit bisherigen Bewertungen
-- [ ] API-Service vollständig an eigenes Backend angebunden
+- [x] Projektliste mit Team-Zuordnung
+- [x] Detailansicht eines Projekts mit bisherigen Bewertungen
+- [x] API-Service vollständig an eigenes Backend angebunden
+- [x] Screenshots: `docs/screenshots/einheit6/`
+
+### Starten
+
+Zwei Terminals, Backend zuerst:
+
+```bash
+# Terminal 1
+cd backend
+npm start            # http://localhost:3000
+
+# Terminal 2
+cd frontend
+npm start            # http://localhost:8100  (entspricht ionic serve)
+```
+
+`ionic serve` funktioniert genauso, `npm start` ruft intern `ng serve` auf.
+
+### Aufbau
+
+```
+frontend/src/app/
+├── services/api.service.ts              alle Backend-Routen als typisierte Methoden
+├── pages/projekte-liste/                Listenansicht
+│   ├── projekte-liste.page.ts/.html/.scss
+│   └── projekte-liste.module.ts
+└── pages/projekt-detail/                Detailansicht
+    ├── projekt-detail.page.ts/.html/.scss
+    └── projekt-detail.module.ts
+```
+
+Routen:
+
+| Pfad | Seite |
+|---|---|
+| `/` | leitet auf `/projekte` weiter |
+| `/projekte` | Projektliste inkl. Team, Suche, Pull-to-Refresh |
+| `/projekte/:id` | Detailansicht mit Auswertung und allen Bewertungen |
+| alles andere | zurück auf `/projekte` |
+
+### API-Service
+
+`services/api.service.ts` kapselt **alle** Routen aus Einheit 4, nicht nur die beiden, die
+diese Einheit braucht: Teams, Members, Projects, Criteria, Jurors, Evaluations sowie beide
+Auswertungsrouten. Jede Methode ist typisiert, die Interfaces spiegeln die Sequelize-Modelle.
+Komponenten greifen nie direkt auf `HttpClient` zu.
+
+Die Backend-Adresse steht in `src/environments/environment.ts` (`apiUrl`), damit ein anderer
+Port nur an einer Stelle geändert werden muss.
+
+`apiFehlerText()` übersetzt eine `HttpErrorResponse` in einen anzeigbaren Satz und wertet dabei
+die Fehlerform des Backends aus (`{ error, details }`). Ist der Server nicht erreichbar,
+erscheint ein Hinweis mit der konfigurierten Adresse.
+
+### Umsetzung im Detail
+
+**Listenansicht** (`/projekte`): Karten mit Teamname, Klasse, Titel, Beschreibung und
+Präsentationsdatum. Dazu eine clientseitige Suche über Titel und Teamname, Kennzahlen über der
+Liste, Pull-to-Refresh sowie eigene Zustände für Laden (Skeleton), Fehler (mit „Erneut
+versuchen“), leere Datenbank und leere Suche.
+
+**Detailansicht** (`/projekte/:id`): lädt Projekt, Auswertung und Einzelbewertungen mit
+`forkJoin` parallel. Zeigt den gewichteten Gesamtdurchschnitt, pro Kriterium einen Balken mit
+Durchschnitt, Spanne, Anzahl der Bewertungen und Gewicht, darunter jede Einzelbewertung mit
+Juror-Kürzel, Punkten und Kommentar. Kriterien ohne Bewertung bleiben sichtbar und werden als
+„nicht bewertet“ gekennzeichnet.
+
+### Abweichungen von der Kursvorlage
+
+Die Kursvorlage geht von Angular 17 und Ionic 7 aus, `ionic start` hat mit **Angular 22 und
+Ionic 9** ein deutlich neueres Projekt erzeugt. Drei Anpassungen waren dadurch nötig:
+
+1. **`provideHttpClient()` statt `HttpClientModule`.** `HttpClientModule` ist seit Angular 18
+   veraltet. Funktional identisch, steht in `app.module.ts`.
+2. **Signals statt Klasseneigenschaften.** Angular 22 arbeitet standardmäßig **zoneless**. Mit
+   normalen Eigenschaften (`this.projekte = daten`) würde die Ansicht nach dem HTTP-Aufruf im
+   Ladezustand hängen bleiben, weil ohne zone.js keine Change Detection ausgelöst wird. Die
+   Seiten nutzen deshalb `signal()` und `computed()`, was die Aktualisierung zuverlässig
+   auslöst. Das war beim Testen ein echter, reproduzierbarer Fehler.
+3. **Neue Control-Flow-Syntax** (`@if`, `@for`) in den Templates.
+
+Das Backend blieb unverändert; die Anbindung nutzt die Routen aus Einheit 4.
+
+### Tests
+
+```bash
+cd frontend
+npm test
+```
+
+15 Unit-Tests für beide Seiten: Laden der Daten, Suche und Filter, Teamzählung,
+Datumsformatierung, Berechnung der Balkenbreite, Initialen, Weiterleitung. Ausgeführt mit
+Vitest, Ergebnis: 3 Testdateien, 15 Tests, alle bestanden.
 
 ## Einheit 7: Login und Endabgabe
 
@@ -414,7 +509,9 @@ wenn es Zusatzinformationen gibt.
 
 ## Bekannte Einschränkungen
 
-- `frontend/` ist noch leer, es wird erst ab Einheit 6 aufgesetzt.
+- Das Frontend ist eine reine Anzeige (Liste und Detail). Anlegen und Bearbeiten von Daten
+  ist bisher nur über die API und in Postman möglich, das Formular kommt in Einheit 7.
+- Das Frontend hat keine Authentifizierung, es zeigt alle Projekte ohne Login.
 - Die API hat noch keine Authentifizierung, alle Routen sind offen. Der Schutz kommt in
   Einheit 7.
 - `Juror.password` für den Login aus Einheit 7 existiert noch nicht, das Feld kommt mit dem
@@ -433,8 +530,11 @@ wenn es Zusatzinformationen gibt.
   `offset` ergänzen.
 - Die Datenbank läuft über XAMPP als MariaDB 10.4.32, nicht über MySQL Community Server.
   Der Sequelize-Dialect `mysql` funktioniert damit, MariaDB ist MySQL-kompatibel.
-- Postman ist noch nicht installiert (wird für Einheit 5 gebraucht).
+- Postman ist installiert (Einheit 5), die Collection liegt in `docs/postman/`.
 - Docker ist auf dem Arbeitsrechner nicht installiert. Es wird die native Variante A verwendet,
   damit ist Docker für dieses Projekt nicht erforderlich.
+- Für Angular 22 musste **Node 24.22.0 LTS** installiert werden, weil die Angular CLI mindestens
+  24.15 verlangt. Es liegt portabel unter `%LOCALAPPDATA%\nodejs-24.22.0` und steht im
+  Benutzer-PATH an erster Stelle; die vorher installierte Version bleibt unangetastet.
 - Der npm-Global-Ordner musste dem Benutzer-PATH hinzugefügt werden, damit `ionic` in neuen
   Terminals gefunden wird.

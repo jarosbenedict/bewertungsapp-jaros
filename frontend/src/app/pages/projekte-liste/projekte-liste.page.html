@@ -1,0 +1,120 @@
+<ion-header class="seitenkopf">
+  <ion-toolbar>
+    <ion-title>
+      <span class="kopfzeile">
+        <span class="marke">Bewertungsapp</span>
+        <span class="titel">Projekte</span>
+      </span>
+    </ion-title>
+  </ion-toolbar>
+  <ion-toolbar class="suchleiste">
+    <ion-searchbar
+      [ngModel]="suche()"
+      (ngModelChange)="sucheAendern($event)"
+      placeholder="Projekt oder Team suchen"
+      [debounce]="150"
+      class="suche"
+    ></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="seiteninhalt">
+  <ion-refresher slot="fixed" (ionRefresh)="laden($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Ladezustand: Skeleton statt leerer Seite -->
+  @if (laedt()) {
+    <div class="raster">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="karte skelett">
+          <ion-skeleton-text [animated]="true" style="width: 37%; height: 12px"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 72%; height: 22px; margin-top: 12px"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 55%; height: 12px; margin-top: 12px"></ion-skeleton-text>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Fehlerzustand mit Wiederholen -->
+  @if (!laedt() && fehler()) {
+    <div class="zustand">
+      <ion-icon name="cloud-offline-outline" class="zustand-icon"></ion-icon>
+      <h2>Daten konnten nicht geladen werden</h2>
+      <p>{{ fehler() }}</p>
+      <ion-button fill="outline" (click)="laden()">
+        <ion-icon slot="start" name="refresh-outline"></ion-icon>
+        Erneut versuchen
+      </ion-button>
+    </div>
+  }
+
+  <!-- Leerer Zustand -->
+  @if (!laedt() && !fehler() && projekte().length === 0) {
+    <div class="zustand">
+      <ion-icon name="folder-open-outline" class="zustand-icon"></ion-icon>
+      <h2>Noch keine Projekte</h2>
+      <p>Das Backend hat keine Projekte geliefert. Lege über die API oder die Seeder welche an.</p>
+    </div>
+  }
+
+  <!-- Kein Treffer für die Suche -->
+  @if (!laedt() && !fehler() && projekte().length > 0 && gefiltert().length === 0) {
+    <div class="zustand">
+      <ion-icon name="search-outline" class="zustand-icon"></ion-icon>
+      <h2>Kein Treffer</h2>
+      <p>Für „{{ suche() }}“ wurde kein Projekt gefunden.</p>
+    </div>
+  }
+
+  @if (!laedt() && !fehler() && gefiltert().length > 0) {
+    <div class="uebersicht">
+      <div class="kennzahl">
+        <span class="zahl">{{ gefiltert().length }}</span>
+        <span class="bezeichnung">{{ gefiltert().length === 1 ? 'Projekt' : 'Projekte' }}</span>
+      </div>
+      <div class="kennzahl">
+        <span class="zahl">{{ anzahlTeams() }}</span>
+        <span class="bezeichnung">{{ anzahlTeams() === 1 ? 'Team' : 'Teams' }}</span>
+      </div>
+      <div class="kennzahl hinweis">
+        <ion-icon name="sync-outline"></ion-icon>
+        <span class="bezeichnung">Zum Aktualisieren nach unten ziehen</span>
+      </div>
+    </div>
+
+    <div class="raster">
+      @for (projekt of gefiltert(); track projekt.id) {
+        <article class="karte" (click)="oeffne(projekt)" role="button" tabindex="0"
+                 (keyup.enter)="oeffne(projekt)">
+          <div class="karte-oben">
+            <span class="team-marke">
+              <ion-icon name="people-outline"></ion-icon>
+              {{ projekt.Team?.name || 'Ohne Team' }}
+            </span>
+            @if (projekt.Team?.klasse) {
+              <span class="klasse">{{ projekt.Team.klasse }}</span>
+            }
+          </div>
+
+          <h2 class="projekt-titel">{{ projekt.titel }}</h2>
+
+          @if (projekt.beschreibung) {
+            <p class="beschreibung">{{ projekt.beschreibung }}</p>
+          }
+
+          <div class="karte-unten">
+            <span class="datum">
+              <ion-icon name="calendar-outline"></ion-icon>
+              {{ datum(projekt) }}
+            </span>
+            <span class="weiter">
+              Bewertungen
+              <ion-icon name="arrow-forward-outline"></ion-icon>
+            </span>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</ion-content>

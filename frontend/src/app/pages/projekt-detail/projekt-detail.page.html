@@ -1,0 +1,169 @@
+<ion-header class="seitenkopf">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/projekte" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Projektdetail</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="seiteninhalt">
+  <ion-refresher slot="fixed" (ionRefresh)="laden($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (laedt()) {
+    <div class="huelle">
+      <div class="karte kopf">
+        <ion-skeleton-text [animated]="true" style="width: 40%; height: 12px"></ion-skeleton-text>
+        <ion-skeleton-text [animated]="true" style="width: 80%; height: 30px; margin-top: 14px"></ion-skeleton-text>
+        <ion-skeleton-text [animated]="true" style="width: 60%; height: 12px; margin-top: 14px"></ion-skeleton-text>
+      </div>
+      <div class="karte kriterien">
+        <ion-skeleton-text [animated]="true" style="width: 30%; height: 12px"></ion-skeleton-text>
+        <ion-skeleton-text [animated]="true" style="width: 100%; height: 14px; margin-top: 16px"></ion-skeleton-text>
+        <ion-skeleton-text [animated]="true" style="width: 100%; height: 14px; margin-top: 10px"></ion-skeleton-text>
+      </div>
+    </div>
+  }
+
+  @if (!laedt() && fehler()) {
+    <div class="zustand">
+      <ion-icon name="alert-circle-outline" class="zustand-icon"></ion-icon>
+      <h2>Projekt nicht verfügbar</h2>
+      <p>{{ fehler() }}</p>
+      <div class="zustand-knoepfe">
+        <ion-button fill="outline" (click)="neuLaden()">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Erneut versuchen
+        </ion-button>
+        <ion-button fill="clear" (click)="zurueck()">Zurück zur Liste</ion-button>
+      </div>
+    </div>
+  }
+
+  @if (!laedt() && !fehler() && projekt(); as p) {
+    <div class="huelle">
+      <!-- Kopfbereich: Projekt, Team und Gesamtergebnis -->
+      <section class="kopf">
+        <span class="team-marke">
+          <ion-icon name="people-outline"></ion-icon>
+          {{ p.Team?.name || 'Ohne Team' }}
+          @if (p.Team?.klasse) {
+            <span class="punkt">·</span> {{ p.Team.klasse }}
+          }
+        </span>
+
+        <h1>{{ p.titel }}</h1>
+
+        @if (p.beschreibung) {
+          <p class="beschreibung">{{ p.beschreibung }}</p>
+        }
+
+        <div class="meta">
+          <span>
+            <ion-icon name="calendar-outline"></ion-icon>
+            Präsentation: {{ datum(p.praesentiertAm) }}
+          </span>
+          <span>
+            <ion-icon name="clipboard-outline"></ion-icon>
+            {{ auswertung()?.gesamt?.summeBewertungen ?? 0 }} Bewertungen
+          </span>
+        </div>
+
+        <div class="ergebnis">
+          <div class="ergebnis-zahl">
+            @if (gesamt() !== null) {
+              <span class="wert">{{ gesamt() }}</span>
+              <span class="von">von 10</span>
+            } @else {
+              <span class="wert leer">–</span>
+              <span class="von">noch keine Bewertung</span>
+            }
+          </div>
+          <div class="ergebnis-text">
+            <strong>Gewichteter Gesamtdurchschnitt</strong>
+            <span>
+              {{ auswertung()?.gesamt?.anzahlBewerteterKriterien ?? 0 }} von
+              {{ auswertung()?.gesamt?.anzahlKriterien ?? 0 }} Kriterien bewertet,
+              Summe der Gewichte {{ auswertung()?.gesamt?.summeGewicht ?? 0 }}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Auswertung pro Kriterium -->
+      <section class="abschnitt">
+        <h2 class="abschnitt-titel">
+          <ion-icon name="stats-chart-outline"></ion-icon>
+          Auswertung nach Kriterium
+        </h2>
+
+        @if (!auswertung()?.kriterien?.length) {
+          <p class="leer-text">Es sind noch keine Kriterien angelegt.</p>
+        } @else {
+          <div class="karte kriterien">
+            @for (k of auswertung()!.kriterien; track k.criterionId) {
+              <div class="kriterium">
+                <div class="kriterium-kopf">
+                  <span class="kriterium-name">{{ k.kriterium }}</span>
+                  <span class="kriterium-wert">
+                    @if (k.durchschnitt !== null) {
+                      <strong>{{ k.durchschnitt }}</strong> / {{ k.maxScore }}
+                    } @else {
+                      <em>nicht bewertet</em>
+                    }
+                  </span>
+                </div>
+                <div class="balken" role="img"
+                     [attr.aria-label]="k.kriterium + ': ' + (k.durchschnitt ?? 0) + ' von ' + k.maxScore">
+                  <div class="balken-fuellung" [style.width.%]="balkenbreite(k)"></div>
+                </div>
+                <div class="kriterium-fuss">
+                  <span>{{ k.anzahlBewertungen }} {{ k.anzahlBewertungen === 1 ? 'Bewertung' : 'Bewertungen' }}</span>
+                  @if (k.minimum !== null && k.maximum !== null) {
+                    <span>Spanne {{ k.minimum }} – {{ k.maximum }}</span>
+                  }
+                  <span>Gewicht {{ k.weight }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Einzelne Bewertungen -->
+      <section class="abschnitt">
+        <h2 class="abschnitt-titel">
+          <ion-icon name="list-outline"></ion-icon>
+          Bisherige Bewertungen
+        </h2>
+
+        @if (bewertungen().length === 0) {
+          <div class="karte leer">
+            <ion-icon name="chatbubbles-outline"></ion-icon>
+            <p>Für dieses Projekt liegt noch keine Bewertung vor.</p>
+          </div>
+        } @else {
+          <div class="karte bewertungen">
+            @for (b of bewertungen(); track b.id) {
+              <div class="bewertung">
+                <div class="juror-kreis">{{ initialen(b.Juror?.name) }}</div>
+                <div class="bewertung-inhalt">
+                  <div class="bewertung-kopf">
+                    <span class="juror-name">{{ b.Juror?.name || 'Unbekannter Juror' }}</span>
+                    <span class="punkte">{{ b.score }}<small>/{{ b.Criterion?.maxScore ?? '?' }}</small></span>
+                  </div>
+                  <span class="kriterium-label">{{ b.Criterion?.name }}</span>
+                  @if (b.comment) {
+                    <p class="kommentar">„{{ b.comment }}“</p>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  }
+</ion-content>

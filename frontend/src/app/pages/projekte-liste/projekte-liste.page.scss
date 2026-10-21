@@ -1,0 +1,177 @@
+.suchleiste {
+  --background: var(--app-ink);
+  --min-height: 60px;
+  --padding-bottom: 14px;
+}
+
+.suche {
+  --background: rgba(255, 255, 255, 0.1);
+  --color: #ffffff;
+  --placeholder-color: rgba(255, 255, 255, 0.55);
+  --icon-color: rgba(255, 255, 255, 0.6);
+  --border-radius: 12px;
+  --box-shadow: none;
+  padding: 0;
+}
+
+/* Kennzahlenzeile über dem Raster */
+.uebersicht {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 22px 20px 4px;
+
+  .kennzahl {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .zahl {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--app-ink);
+      letter-spacing: -0.02em;
+    }
+
+    .bezeichnung {
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--app-muted);
+    }
+  }
+
+  .hinweis {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+
+    ion-icon {
+      font-size: 17px;
+      color: var(--app-muted);
+    }
+  }
+}
+
+/* Raster der Projektkarten */
+.raster {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 18px 20px 40px;
+}
+
+@media (min-width: 720px) {
+  .raster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1080px) {
+  .raster {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.karte {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--app-shadow-hoch);
+    border-color: rgba(37, 85, 124, 0.35);
+    outline: none;
+  }
+}
+
+.karte-oben {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.klasse {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--app-muted);
+  background: #f1f4f8;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.projekt-titel {
+  margin: 14px 0 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--app-ink);
+}
+
+.karte-unten {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--app-border);
+  font-size: 12.5px;
+
+  .datum {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--app-muted);
+
+    ion-icon {
+      font-size: 15px;
+    }
+  }
+
+  .weiter {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+    color: var(--ion-color-primary);
+
+    ion-icon {
+      font-size: 15px;
+      transition: transform 140ms ease;
+    }
+  }
+}
+
+.karte:hover .weiter ion-icon {
+  transform: translateX(3px);
+}
+
+/* Ladeplatzhalter */
+.skelett {
+  cursor: default;
+  pointer-events: none;
+
+  &:hover {
+    transform: none;
+    box-shadow: var(--app-shadow);
+    border-color: var(--app-border);
+  }
+}
+
+ion-refresher ion-refresher-content {
+  --color: var(--ion-color-primary);
+}
