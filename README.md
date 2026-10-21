@@ -261,7 +261,8 @@ enthält nur die Konfiguration (`baseUrl`), die man pro Umgebung ändert.
 - [x] Projektliste mit Team-Zuordnung
 - [x] Detailansicht eines Projekts mit bisherigen Bewertungen
 - [x] API-Service vollständig an eigenes Backend angebunden
-- [x] Screenshots: `docs/screenshots/einheit6/`
+- [x] Screenshots: `docs/screenshots/einheit6/` (`projekte-liste.png`, `projekt-detail.png`,
+      `projekt-detail-bewertungen.png`)
 
 ### Starten
 
