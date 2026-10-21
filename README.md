@@ -215,10 +215,44 @@ errorHandler weiter.
 
 ## Einheit 5: Postman-Test
 
-- [ ] Collection: `docs/postman/bewertungsapp.postman_collection.json`
-- [ ] Environment: `docs/postman/bewertungsapp.postman_environment.json`
-- [ ] Mindestens zwei dokumentierte Negativtests
-- [ ] Testbericht: `docs/postman/testbericht.md`
+- [x] Collection: `docs/postman/bewertungsapp.postman_collection.json`
+- [x] Environment: `docs/postman/bewertungsapp.postman_environment.json`
+- [x] 15 dokumentierte Negativtests mit automatisierten Assertions
+- [x] Testbericht: `docs/postman/testbericht.md`
+
+### Import und Ausführung
+
+1. In Postman das Environment `bewertungsapp-lokal` importieren, dann die Collection.
+2. Environment oben rechts auswählen, sonst ist `{{baseUrl}}` nicht auflösbar.
+3. Backend starten (`cd backend && npm start`).
+4. Collection über „Run" ausführen, oder per Kommandozeile:
+
+```bash
+npx newman run docs/postman/bewertungsapp.postman_collection.json \
+  -e docs/postman/bewertungsapp.postman_environment.json
+```
+
+### Aufbau
+
+| Ordner | Inhalt |
+|---|---|
+| 01 · Teams | CRUD, verschachtelte Routen, 4 Negativtests |
+| 02 · Members | CRUD, Filter nach `teamId`, 1 Negativtest |
+| 03 · Projects | CRUD, Auswertung, 2 Negativtests |
+| 04 · Criteria | CRUD, 2 Negativtests (Duplikat, `maxScore` 0) |
+| 05 · Jurors | CRUD, 3 Negativtests (E-Mail-Format, Duplikat, Löschen mit Bewertungen) |
+| 06 · Evaluations | POST mit Validierung, Auswertung, 4 Negativtests |
+| 07 · Aufräumen | löscht alle Testdaten wieder |
+
+44 Requests, 120 automatisierte Assertions, Ergebnis: 0 Fehler.
+
+Die Collection ist wiederholbar: Testdaten bekommen eindeutige Namen (`Date.now()` im
+Pre-request-Script), die angelegten IDs werden als Collection-Variablen
+(`testTeamId`, `testProjectId`, …) weiterverwendet, und Ordner 07 räumt am Ende auf. Die
+Seed-Daten der Einheit 3 bleiben dadurch unverändert.
+
+Dynamische IDs liegen bewusst in Collection-Variablen, nicht im Environment: das Environment
+enthält nur die Konfiguration (`baseUrl`), die man pro Umgebung ändert.
 
 ## Einheit 6: IONIC-Frontend
 
